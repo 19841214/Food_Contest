@@ -15,8 +15,8 @@
         body {
             font-family: 'Poppins', 'Noto Sans TC', sans-serif;
             touch-action: manipulation;
-            /* 柔和的漸層背景 */
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            transition: background-color 0.3s ease;
         }
         .font-poppins {
             font-family: 'Poppins', sans-serif;
@@ -31,13 +31,12 @@
             background-color: transparent;
         }
         
-        /* 現代感對話框 */
         .speech-bubble {
             position: relative;
             background: #ffffff;
             border-radius: 1rem;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            border: 3px solid #f59e0b; /* Amber 500 */
+            border: 3px solid #f59e0b;
         }
         .speech-bubble:after {
             content: '';
@@ -65,7 +64,6 @@
             z-index: 1;
         }
 
-        /* 玩家卡片發光效果 */
         .player-card {
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
         }
@@ -77,7 +75,6 @@
 
         .hidden { display: none !important; }
         
-        /* 答題按鈕優化 */
         #answer-grid button {
             white-space: normal;
             word-break: break-word;
@@ -121,7 +118,6 @@
             50% { transform: scale(1.1); }
         }
 
-        /* 頒獎台優化 */
         .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 8px; height: 180px; }
         .podium-step { 
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end; 
@@ -140,13 +136,11 @@
         .podium-score { font-size: 1rem; font-weight: 600; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 12px; }
         .podium-rank { font-size: 2.5rem; font-weight: 900; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); margin-bottom: 8px;}
 
-        /* Scrollbar Styles */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Animations */
         .countdown-text-enter { animation: zoom-in-out 1s ease-in-out forwards; }
         @keyframes zoom-in-out {
             0% { transform: scale(0.2); opacity: 0; }
@@ -156,12 +150,33 @@
         }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* === 新增：視覺回饋特效動畫 === */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+            20%, 40%, 60%, 80% { transform: translateX(8px); }
+        }
+        .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes flash-success {
+            0% { box-shadow: inset 0 0 100px rgba(16, 185, 129, 0.6); background-color: rgba(16, 185, 129, 0.1); }
+            100% { box-shadow: inset 0 0 0 transparent; background-color: transparent; }
+        }
+        .animate-flash-success { animation: flash-success 1s ease-out; }
+        
+        @keyframes flash-error {
+            0% { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.6); background-color: rgba(239, 68, 68, 0.1); }
+            100% { box-shadow: inset 0 0 0 transparent; background-color: transparent; }
+        }
+        .animate-flash-error { animation: flash-error 1s ease-out; }
     </style>
 </head>
 <body>
-    <div id="game-container" class="game-container">
-        <!-- Header: Scores and Timer -->
-        <header class="p-4 sm:p-6 pb-2">
+    <div id="game-container" class="game-container relative">
+        <div id="vfx-overlay" class="pointer-events-none absolute inset-0 z-30 transition-all duration-300"></div>
+
+        <header class="p-4 sm:p-6 pb-2 z-10 relative">
             <div class="grid grid-cols-3 items-center gap-3 sm:gap-6 text-center">
                 <div id="p1-card" class="player-card bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-5 rounded-2xl shadow-lg border-2 border-red-400">
                     <div class="flex items-center justify-center gap-2 mb-1">
@@ -186,8 +201,7 @@
             </div>
         </header>
 
-        <!-- Main Game Area -->
-        <main id="main-content-area" class="flex-grow flex flex-col items-center justify-start p-4 space-y-4 overflow-y-auto min-h-0 custom-scrollbar">
+        <main id="main-content-area" class="flex-grow flex flex-col items-center justify-start p-4 space-y-4 overflow-y-auto min-h-0 custom-scrollbar z-10 relative">
             <div id="chef-view" class="w-full flex flex-col items-center text-center mt-2">
                  <div id="dish-image-container" class="mb-6 h-48 sm:h-64 w-full max-w-2xl bg-white rounded-2xl flex items-center justify-center hidden shadow-xl overflow-hidden border-4 border-white fade-in">
                     <img id="dish-image" src="" alt="Dish Image" class="w-full h-full object-cover">
@@ -219,12 +233,7 @@
                 </button>
             </div>
         </main>
-
-        <!-- Background Music -->
-        <audio id="bg-music" loop></audio>
-        <audio id="victory-music"></audio>
         
-        <!-- Overlays -->
         <div id="countdown-overlay" class="hidden absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50">
             <h1 id="countdown-text" class="text-[8rem] sm:text-[12rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 font-poppins drop-shadow-2xl"></h1>
         </div>
@@ -232,11 +241,9 @@
             <h1 class="text-7xl sm:text-9xl font-black text-white animate-pulse font-poppins drop-shadow-2xl tracking-widest">TIME'S UP!</h1>
         </div>
 
-        <!-- Modals -->
         <div id="modal" class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-40">
             <div id="modal-content" class="bg-white text-center p-6 sm:p-10 rounded-3xl shadow-2xl w-full max-w-lg mx-auto max-h-[95vh] overflow-y-auto custom-scrollbar relative border border-white/20">
                 
-                <!-- Login View -->
                 <div id="login-view" class="fade-in">
                     <div class="mb-6 inline-block bg-amber-100 p-4 rounded-full">
                         <span class="text-5xl">🍲</span>
@@ -249,8 +256,8 @@
                         <input type="text" id="player-name" placeholder="e.g. Master Chef" class="shadow-sm appearance-none border-2 border-gray-200 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all mb-4 font-semibold text-lg">
                         
                         <div class="flex items-center justify-between mt-2 bg-white p-3 rounded-lg border border-gray-100">
-                             <label for="volume-slider" class="text-sm font-bold text-gray-600 flex items-center gap-2"><span>🎵</span> Music Volume</label>
-                             <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.3" class="w-1/2 accent-indigo-500">
+                             <label for="volume-slider" class="text-sm font-bold text-gray-600 flex items-center gap-2"><span>🎵</span> Master Volume</label>
+                             <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" class="w-1/2 accent-indigo-500">
                         </div>
                     </div>
 
@@ -272,19 +279,16 @@
                     </div>
                 </div>
 
-                <!-- Country Selection View -->
                 <div id="country-selection-view" class="hidden fade-in">
                     <h2 class="text-3xl font-black mb-2 text-gray-800">Select Opponent</h2>
                     <p class="text-gray-500 mb-6 font-medium">Choose a country to battle against Taiwan</p>
                     <div id="country-selection-grid" class="grid grid-cols-2 sm:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto p-2 custom-scrollbar">
-                        <!-- Populated dynamically by JS -->
                     </div>
                      <button id="back-to-login-btn" class="mt-8 text-gray-500 hover:text-gray-800 font-bold hover:underline transition-colors flex items-center justify-center gap-1 mx-auto">
                          <span>←</span> Back
                      </button>
                 </div>
 
-                <!-- Waiting View -->
                 <div id="waiting-view" class="hidden fade-in py-8">
                     <div class="inline-block animate-spin text-indigo-500 text-5xl mb-6">⏳</div>
                     <h2 class="text-3xl font-black mb-2 text-gray-800">Waiting for Challenger...</h2>
@@ -299,19 +303,15 @@
                     <p id="copy-feedback" class="text-sm font-bold text-emerald-500 h-6 mt-3"></p>
                 </div>
 
-                 <!-- End Game View -->
                  <div id="end-game-view" class="hidden fade-in">
                      <div class="mb-2 text-5xl">🏆</div>
                      <h2 id="end-title" class="text-3xl font-black mb-6 text-gray-800 uppercase tracking-wide">Final Results</h2>
                      
-                     <div id="podium-container" class="podium-container mb-8">
-                        <!-- Populated by JS -->
-                     </div>
+                     <div id="podium-container" class="podium-container mb-8"></div>
                      
                      <div class="mt-4 text-left bg-gray-50 rounded-2xl p-4 border border-gray-100">
                         <h3 class="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2"><span>🍽️</span> Dishes Reviewed</h3>
-                        <div id="dishes-review-area" class="h-48 overflow-y-auto space-y-3 custom-scrollbar pr-2">
-                        </div>
+                        <div id="dishes-review-area" class="h-48 overflow-y-auto space-y-3 custom-scrollbar pr-2"></div>
                      </div>
                      
                      <div id="feedback-section" class="mt-6 text-left">
@@ -351,17 +351,52 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- 國家與國旗對應字典 (新增國家會自動對應) ---
-        const countryDataMap = {
-            taiwan: { code: 'tw' }, malaysia: { code: 'my' }, australia: { code: 'au' }, 
-            philippines: { code: 'ph' }, canada: { code: 'ca' }, japan: { code: 'jp' },
-            korea: { code: 'kr' }, usa: { code: 'us' }, uk: { code: 'gb' },
-            france: { code: 'fr' }, germany: { code: 'de' }, italy: { code: 'it' },
-            spain: { code: 'es' }, thailand: { code: 'th' }, vietnam: { code: 'vn' },
-            singapore: { code: 'sg' }, indonesia: { code: 'id' }, india: { code: 'in' }
+        // === 音效與音量平衡管理器 ===
+        const sounds = {
+            bgm: new Audio("https://cdn.pixabay.com/download/audio/2026/02/11/audio_801b8c72fd.mp3?filename=the_mountain-cooking-483306.mp3"),
+            victory: new Audio("https://cdn.pixabay.com/download/audio/2026/01/18/audio_fcc850dccd.mp3?filename=ikoliks_aj-award-awards-fanfare-music-468194.mp3"),
+            correct: new Audio("https://cdn.pixabay.com/download/audio/2026/01/24/audio_d050f34e8a.mp3?filename=dragon-studio-correct-472358.mp3"),
+            wrong: new Audio("https://cdn.pixabay.com/download/audio/2025/08/03/audio_4f0ce1aeca.mp3?filename=universfield-fail-trumpet-02-383962.mp3"),
+            tick: new Audio("https://cdn.pixabay.com/download/audio/2022/03/24/audio_a2cd036bc8.mp3?filename=freesound_community-tick-tock-104746.mp3"),
+            bell: new Audio("https://cdn.pixabay.com/download/audio/2025/10/16/audio_becf266b23.mp3?filename=u_7xr5ffk4oq-opening-bell-421471.mp3")
+        };
+        sounds.bgm.loop = true;
+
+        // 核心設定：個別音效的「相對音量比例」
+        const baseVolumes = {
+            bgm: 0.15,      // BGM 調小，作為舒服的襯底音樂，不干擾語音
+            victory: 0.5,   // 結算音樂適中
+            correct: 0.8,   // 答對音效清脆大聲
+            wrong: 0.7,     // 答錯音效大聲
+            tick: 0.6,      // 倒數滴答聲適中
+            bell: 0.6       // 回合結束鐘聲適中
         };
 
-        // --- DOM Elements ---
+        let masterVolume = 0.5; // 由畫面滑桿控制的主音量
+
+        // 計算並套用真實音量
+        function updateAudioVolumes() {
+            Object.keys(sounds).forEach(key => {
+                // 真實音量 = 基礎比例 * 主音量滑桿
+                sounds[key].volume = baseVolumes[key] * masterVolume;
+            });
+        }
+        
+        const volumeSlider = document.getElementById('volume-slider');
+        volumeSlider.addEventListener('input', (e) => { 
+            masterVolume = e.target.value;
+            updateAudioVolumes();
+        });
+        
+        // 初始化音量
+        updateAudioVolumes();
+        // ==========================
+
+        const countryDataMap = {
+            taiwan: { code: 'tw' }, malaysia: { code: 'my' }, australia: { code: 'au' }, 
+            philippines: { code: 'ph' }, canada: { code: 'ca' }, japan: { code: 'jp' }
+        };
+
         const p1NameDisplay = document.getElementById('p1-name-display'), p2NameDisplay = document.getElementById('p2-name-display');
         const p1Card = document.getElementById('p1-card'), p2Card = document.getElementById('p2-card');
         const p2Flag = document.getElementById('p2-flag');
@@ -381,9 +416,6 @@
         const roomIdInput = document.getElementById('room-id-input');
         const roomIdDisplay = document.getElementById('room-id-display'), copyIdBtn = document.getElementById('copy-id-btn'), copyFeedback = document.getElementById('copy-feedback');
         const playAgainBtn = document.getElementById('play-again-btn');
-        const bgMusic = document.getElementById('bg-music');
-        const volumeSlider = document.getElementById('volume-slider');
-        const victoryMusic = document.getElementById('victory-music');
         
         const nextRoundBtn = document.getElementById('next-round-btn');
         const timesUpOverlay = document.getElementById('times-up-overlay');
@@ -394,14 +426,17 @@
         const feedbackThanks = document.getElementById('feedback-thanks');
         const dishesReviewArea = document.getElementById('dishes-review-area');
         
-        // --- Game State ---
+        // 視覺特效遮罩層
+        const vfxOverlay = document.getElementById('vfx-overlay');
+        const gameContainer = document.getElementById('game-container');
+
         let allDishes = {}; 
         let currentUser = null, gameRoomId = null, playerNumber = null;
         let unsubscribe = null, mainTimerInterval = null, roundTimerInterval = null;
         let speech = new SpeechSynthesisUtterance();
         let currentGameDishes = [];
+        let prevGameState = {}; 
         
-        // --- Game Logic ---
         async function loadDishesFromGoogleSheet() {
             try {
                 if (!GOOGLE_SHEET_URL) throw new Error("Missing GOOGLE_SHEET_URL");
@@ -435,20 +470,17 @@
             }
         }
 
-        // --- 動態生成國家按鈕 ---
         function populateCountrySelection() {
             countrySelectionGrid.innerHTML = '';
-
             for (const country in allDishes) {
-                if (country === 'taiwan') continue; // 台灣是預設的主場 P1
+                if (country === 'taiwan') continue;
                 
                 const countryName = country.charAt(0).toUpperCase() + country.slice(1);
-                const flagCode = countryDataMap[country] ? countryDataMap[country].code : 'un'; // 找不到則顯示預設圖示
+                const flagCode = countryDataMap[country] ? countryDataMap[country].code : 'un';
                 const dishCount = allDishes[country].length;
 
                 const button = document.createElement('button');
                 button.dataset.country = country;
-                // 使用現代感卡片設計
                 button.className = `group flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-indigo-500 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer relative overflow-hidden`;
                 
                 button.innerHTML = `
@@ -467,35 +499,28 @@
             }
         }
 
-        // --- 高級語音 TTS 設置 ---
         function setupSpeech() {
             const setVoice = () => {
                 const voices = window.speechSynthesis.getVoices();
-                // 優先選擇高品質、自然的英文語音 (跨平台支援)
                 const preferredVoices = [
-                    'Google US English', 'Google UK English Female', // Chrome
-                    'Samantha', 'Karen', 'Daniel', 'Rishi', // macOS / iOS
-                    'Microsoft Aria Online (Natural)', 'Microsoft Zira', 'Microsoft David' // Windows / Edge
+                    'Google US English', 'Google UK English Female',
+                    'Samantha', 'Karen', 'Daniel', 'Rishi',
+                    'Microsoft Aria Online (Natural)', 'Microsoft Zira', 'Microsoft David'
                 ];
-                
                 let selectedVoice = null;
                 for (const voiceName of preferredVoices) {
                     selectedVoice = voices.find(v => v.name.includes(voiceName));
                     if (selectedVoice) break;
                 }
-                
-                // Fallback: 找不到指定的高級語音，找任何英文發音
                 if (!selectedVoice) selectedVoice = voices.find(voice => voice.lang.startsWith('en-'));
                 if (selectedVoice) speech.voice = selectedVoice;
             };
             
             setVoice();
-            if (window.speechSynthesis.onvoiceschanged !== undefined) {
-                window.speechSynthesis.onvoiceschanged = setVoice;
-            }
+            if (window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = setVoice;
             speech.lang = 'en-US';
-            speech.rate = 0.95; // 微調語速讓發音更自然
-            speech.pitch = 1.05; // 稍微調高音調增加活潑感
+            speech.rate = 0.95; 
+            speech.pitch = 1.05; 
         }
 
         async function initializeGame() {
@@ -544,8 +569,7 @@
             const roomData = {
                 player1: { uid: currentUser.uid, name: playerName, score: 0, answer: null, answeredAt: null },
                 player2: null, status: 'waiting', timeLeft: 180, currentDishIndex: -1,
-                dishOrder: dishOrder,
-                opponentCountry: opponentCountry,
+                dishOrder: dishOrder, opponentCountry: opponentCountry,
                 roundTimeLeft: 20, roundActive: false, roundMessage: '', countdownStarted: false, countdownText: '', roundPaused: false,
                 revealImageUrl: '', revealExplanationZh: ''
             };
@@ -558,7 +582,6 @@
                 listenToRoomUpdates();
             } catch (e) {
                 console.error("Failed to create room: ", e);
-                alert("Failed to create room! Please check your Firestore security rules.");
             }
         }
 
@@ -582,6 +605,23 @@
             }
         });
 
+        // === 觸發視覺特效函數 ===
+        function triggerVisualEffect(isCorrect) {
+            // 重置動畫 class，確保可以重複觸發
+            gameContainer.classList.remove('animate-shake');
+            vfxOverlay.classList.remove('animate-flash-success', 'animate-flash-error');
+            
+            // 強制瀏覽器重繪 (Reflow) 以便重新觸發動畫
+            void gameContainer.offsetWidth; 
+
+            if (isCorrect) {
+                vfxOverlay.classList.add('animate-flash-success');
+            } else {
+                gameContainer.classList.add('animate-shake');
+                vfxOverlay.classList.add('animate-flash-error');
+            }
+        }
+
         function listenToRoomUpdates() {
             if (unsubscribe) unsubscribe();
             const roomRef = doc(db, "game_rooms", gameRoomId);
@@ -597,6 +637,30 @@
                     currentGameDishes = [...allDishes.taiwan, ...allDishes[game.opponentCountry]];
                     setupAnswerGrid();
                 }
+
+                // === 觸發音效與視覺特效邏輯 ===
+                if (game.countdownText && game.countdownText !== prevGameState.countdownText) {
+                    if (game.countdownText !== "GO!" && game.countdownText !== "Start!") {
+                        sounds.tick.currentTime = 0; 
+                        sounds.tick.play().catch(e => {});
+                    }
+                }
+
+                if (game.roundPaused && !prevGameState.roundPaused) {
+                    sounds.bell.play().catch(e => {}); 
+                    
+                    const myKey = playerNumber === 1 ? 'player1' : 'player2';
+                    const currentDish = currentGameDishes[game.dishOrder[game.currentDishIndex]];
+                    const isCorrect = game[myKey] && game[myKey].answer === currentDish.name_en;
+                    
+                    // 延遲 400ms 播放回饋音效並同時觸發視覺閃爍
+                    setTimeout(() => {
+                        triggerVisualEffect(isCorrect);
+                        if (isCorrect) sounds.correct.play().catch(e => {});
+                        else sounds.wrong.play().catch(e => {});
+                    }, 400);
+                }
+                prevGameState = game;
 
                 updateUI(game);
                 handleGameFlow(game); 
@@ -626,7 +690,7 @@
                 countdownOverlay.classList.remove('hidden');
                 countdownText.textContent = game.countdownText;
                 countdownText.classList.remove('countdown-text-enter');
-                void countdownText.offsetWidth; // trigger reflow
+                void countdownText.offsetWidth; 
                 countdownText.classList.add('countdown-text-enter');
             } else {
                 countdownOverlay.classList.add('hidden');
@@ -645,7 +709,6 @@
             const hasAnswered = game[myPlayerKey] && game[myPlayerKey].answer;
             answerGrid.querySelectorAll('button').forEach(btn => {
                 btn.disabled = hasAnswered || !isAnsweringPhase;
-                // 重設基本樣式
                 btn.className = 'w-full p-2 text-sm sm:text-base border-2 border-gray-200 rounded-xl transition-all bg-white hover:bg-gray-50 text-gray-700 whitespace-normal break-words shadow-sm';
                 
                 if (game.player1 && game.player1.answer === btn.dataset.answer) btn.classList.add('selected-p1');
@@ -663,7 +726,7 @@
             if (isRevealPhase && currentDish && currentDish.image_url) {
                 dishImageContainer.classList.remove('hidden');
                 dishImage.src = currentDish.image_url;
-                dishImage.onerror = () => { dishImageContainer.classList.add('hidden'); }; // 如果沒圖片就藏起來
+                dishImage.onerror = () => { dishImageContainer.classList.add('hidden'); }; 
             } else {
                 dishImageContainer.classList.add('hidden');
             }
@@ -837,13 +900,12 @@
                 if (mainTimerInterval) { clearInterval(mainTimerInterval); mainTimerInterval = null; }
                 if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
                 window.speechSynthesis.cancel();
-                bgMusic.pause();
+                sounds.bgm.pause();
                 timesUpOverlay.classList.remove('hidden');
                 setTimeout(() => {
                     timesUpOverlay.classList.add('hidden');
-                    victoryMusic.src = "https://www.bensound.com/bensound-music/bensound-happyrock.mp3";
-                    victoryMusic.volume = volumeSlider.value;
-                    victoryMusic.play().catch(e => console.log("Victory music blocked"));
+                    sounds.victory.currentTime = 0;
+                    sounds.victory.play().catch(e => console.log("Victory music blocked"));
                     renderPodium(game);
                     renderDishesReview(game);
                     showView('end-game-view');
@@ -874,11 +936,19 @@
             gameRoomId = null;
             playerNumber = null;
             currentGameDishes = [];
+            prevGameState = {};
             feedbackInput.value = '';
             submitFeedbackBtn.disabled = false;
             feedbackThanks.textContent = '';
-            victoryMusic.pause();
-            victoryMusic.currentTime = 0;
+            
+            Object.values(sounds).forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+            
+            gameContainer.classList.remove('animate-shake');
+            vfxOverlay.classList.remove('animate-flash-success', 'animate-flash-error');
+
             showView('login-view');
         }
 
@@ -889,7 +959,6 @@
             navigator.clipboard.writeText(gameRoomId).then(() => {
                 copyFeedback.textContent = 'Copied to clipboard!';
             }).catch(() => {
-                // Fallback for older browsers
                 const textArea = document.createElement("textarea");
                 textArea.value = gameRoomId;
                 document.body.appendChild(textArea);
@@ -901,12 +970,9 @@
             setTimeout(() => copyFeedback.textContent = '', 2000);
         });
 
-        volumeSlider.addEventListener('input', (e) => { bgMusic.volume = e.target.value; victoryMusic.volume = e.target.value;});
-        
         function playMusic() {
-            bgMusic.src = "https://www.bensound.com/bensound-music/bensound-energy.mp3";
-            bgMusic.volume = volumeSlider.value;
-            bgMusic.play().catch(e => console.log("Music playback requires interaction."));
+            sounds.bgm.currentTime = 0;
+            sounds.bgm.play().catch(e => console.log("Music playback requires interaction."));
         }
         
         goToCreateBtn.addEventListener('click', () => showView('country-selection-view'));
