@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taiwan-International Food Showdown</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior-y: contain;
+        }
+        body {
+            font-family: 'Poppins', 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+            /* 柔和的漸層背景 */
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+        .font-poppins {
+            font-family: 'Poppins', sans-serif;
+        }
+        .game-container {
+            width: 100%;
+            height: 100%;
+            max-width: 1200px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            background-color: transparent;
+        }
+        
+        /* 現代感對話框 */
+        .speech-bubble {
+            position: relative;
+            background: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 3px solid #f59e0b; /* Amber 500 */
+        }
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border: 22px solid transparent;
+            border-top-color: #f59e0b;
+            border-bottom: 0;
+            margin-left: -22px;
+        }
+        .speech-bubble:before {
+            content: '';
+            position: absolute;
+            bottom: -16px;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border: 16px solid transparent;
+            border-top-color: #ffffff;
+            border-bottom: 0;
+            margin-left: -16px;
+            z-index: 1;
+        }
+
+        /* 玩家卡片發光效果 */
+        .player-card {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+        .player-card.you {
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), inset 0 0 10px rgba(255,255,255,0.5);
+            transform: scale(1.05);
+        }
+
+        .hidden { display: none !important; }
+        
+        /* 答題按鈕優化 */
+        #answer-grid button {
+            white-space: normal;
+            word-break: break-word;
+            height: 5.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom-width: 4px;
+        }
+        #answer-grid button:active:not(:disabled) {
+            transform: translateY(2px);
+            border-bottom-width: 2px;
+            margin-top: 2px;
+        }
+        #answer-grid button.selected-p1 { 
+            background-color: #ef4444 !important; 
+            color: white !important; 
+            border-color: #b91c1c !important; 
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+        #answer-grid button.selected-p2 { 
+            background-color: #3b82f6 !important; 
+            color: white !important; 
+            border-color: #1d4ed8 !important; 
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        #answer-grid button.correct { 
+            background-color: #10b981 !important; 
+            color: white !important; 
+            border-color: #047857 !important; 
+            transform: scale(1.05); 
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+            animation: bounce-slight 0.5s ease;
+        }
+        #answer-grid button.incorrect { text-decoration: line-through; opacity: 0.5; filter: grayscale(100%); }
+        #answer-grid button:disabled { cursor: not-allowed; }
+
+        @keyframes bounce-slight {
+            0%, 100% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* 頒獎台優化 */
+        .podium-container { display: flex; align-items: flex-end; justify-content: center; gap: 8px; height: 180px; }
+        .podium-step { 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end; 
+            color: white; padding: 15px 10px; border-radius: 12px 12px 0 0; width: 130px; text-align: center;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .podium-step::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 30%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+        }
+        .podium-1st { height: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); z-index: 2;}
+        .podium-2nd { height: 75%; background: linear-gradient(135deg, #9ca3af, #6b7280); z-index: 1;}
+        .podium-name { font-weight: 800; font-size: 1.2rem; word-break: break-all; margin-bottom: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);}
+        .podium-score { font-size: 1rem; font-weight: 600; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 12px; }
+        .podium-rank { font-size: 2.5rem; font-weight: 900; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); margin-bottom: 8px;}
+
+        /* Scrollbar Styles */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animations */
+        .countdown-text-enter { animation: zoom-in-out 1s ease-in-out forwards; }
+        @keyframes zoom-in-out {
+            0% { transform: scale(0.2); opacity: 0; }
+            40% { transform: scale(1.2); opacity: 1; }
+            60% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="game-container" class="game-container">
+        <!-- Header: Scores and Timer -->
+        <header class="p-4 sm:p-6 pb-2">
+            <div class="grid grid-cols-3 items-center gap-3 sm:gap-6 text-center">
+                <div id="p1-card" class="player-card bg-gradient-to-br from-red-500 to-red-600 text-white p-3 sm:p-5 rounded-2xl shadow-lg border-2 border-red-400">
+                    <div class="flex items-center justify-center gap-2 mb-1">
+                        <img src="https://flagcdn.com/w40/tw.png" alt="Taiwan Flag" class="h-5 sm:h-6 rounded-sm shadow-sm">
+                        <h2 id="p1-name-display" class="text-base sm:text-xl font-bold truncate tracking-wide">Player 1</h2>
+                    </div>
+                    <p id="score1" class="font-poppins text-4xl sm:text-6xl font-extrabold drop-shadow-md">0</p>
+                </div>
+                
+                <div class="bg-white/60 backdrop-blur-md text-gray-800 p-3 sm:p-5 rounded-2xl shadow-lg border-2 border-white/50 flex flex-col justify-center h-full">
+                    <h2 class="text-sm sm:text-lg font-bold text-gray-500 uppercase tracking-wider mb-1">Time Left</h2>
+                    <p id="timer" class="font-poppins text-3xl sm:text-5xl font-extrabold text-gray-800">3:00</p>
+                </div>
+
+                <div id="p2-card" class="player-card bg-gradient-to-br from-blue-500 to-blue-600 text-white p-3 sm:p-5 rounded-2xl shadow-lg border-2 border-blue-400">
+                    <div class="flex items-center justify-center gap-2 mb-1">
+                         <img id="p2-flag" src="https://flagcdn.com/w40/un.png" alt="Opponent Flag" class="h-5 sm:h-6 rounded-sm shadow-sm">
+                        <h2 id="p2-name-display" class="text-base sm:text-xl font-bold truncate tracking-wide">Player 2</h2>
+                    </div>
+                    <p id="score2" class="font-poppins text-4xl sm:text-6xl font-extrabold drop-shadow-md">0</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main id="main-content-area" class="flex-grow flex flex-col items-center justify-start p-4 space-y-4 overflow-y-auto min-h-0 custom-scrollbar">
+            <div id="chef-view" class="w-full flex flex-col items-center text-center mt-2">
+                 <div id="dish-image-container" class="mb-6 h-48 sm:h-64 w-full max-w-2xl bg-white rounded-2xl flex items-center justify-center hidden shadow-xl overflow-hidden border-4 border-white fade-in">
+                    <img id="dish-image" src="" alt="Dish Image" class="w-full h-full object-cover">
+                </div>
+                
+                <div id="chef-area" class="speech-bubble p-6 sm:p-8 min-h-[8rem] flex flex-col items-center justify-center w-full max-w-2xl z-10">
+                    <p id="description" class="text-lg sm:text-xl font-semibold text-gray-800 leading-relaxed">Welcome to the International Food Showdown!</p>
+                    <p id="explanation-zh-display" class="text-base text-indigo-600 font-bold mt-3 hidden bg-indigo-50 px-4 py-2 rounded-lg"></p>
+                </div>
+                
+                <div class="relative mt-2">
+                    <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Chef&backgroundColor=f59e0b" alt="Simulated Chef" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full mx-auto border-4 border-white shadow-xl bg-white">
+                    <div class="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md">
+                        <span class="text-2xl">👨‍🍳</span>
+                    </div>
+                </div>
+                
+                <p id="round-timer" class="font-poppins text-2xl text-center font-extrabold text-rose-500 h-8 mt-4 tracking-wide drop-shadow-sm"></p>
+            </div>
+        
+            <div id="answer-view" class="w-full flex flex-col items-center justify-center space-y-4 hidden fade-in">
+                 <div id="answer-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 w-full max-w-5xl">
+                 </div>
+            </div>
+
+            <div id="host-controls" class="w-full max-w-4xl mt-4 pb-8">
+                <button id="next-round-btn" class="hidden w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-2xl text-xl shadow-lg transform hover:-translate-y-1 transition-all duration-200">
+                    Next Question ➔
+                </button>
+            </div>
+        </main>
+
+        <!-- Background Music -->
+        <audio id="bg-music" loop></audio>
+        <audio id="victory-music"></audio>
+        
+        <!-- Overlays -->
+        <div id="countdown-overlay" class="hidden absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <h1 id="countdown-text" class="text-[8rem] sm:text-[12rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 font-poppins drop-shadow-2xl"></h1>
+        </div>
+        <div id="times-up-overlay" class="hidden absolute inset-0 bg-rose-600/90 backdrop-blur-md flex items-center justify-center z-50">
+            <h1 class="text-7xl sm:text-9xl font-black text-white animate-pulse font-poppins drop-shadow-2xl tracking-widest">TIME'S UP!</h1>
+        </div>
+
+        <!-- Modals -->
+        <div id="modal" class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-40">
+            <div id="modal-content" class="bg-white text-center p-6 sm:p-10 rounded-3xl shadow-2xl w-full max-w-lg mx-auto max-h-[95vh] overflow-y-auto custom-scrollbar relative border border-white/20">
+                
+                <!-- Login View -->
+                <div id="login-view" class="fade-in">
+                    <div class="mb-6 inline-block bg-amber-100 p-4 rounded-full">
+                        <span class="text-5xl">🍲</span>
+                    </div>
+                    <h2 class="text-4xl font-black mb-2 text-gray-800 tracking-tight">Food Showdown</h2>
+                    <p id="loading-dishes-text" class="text-gray-500 mb-8 font-medium">Loading delicious dishes...</p>
+                    
+                    <div class="bg-gray-50 p-6 rounded-2xl mb-6 border border-gray-100 shadow-sm">
+                        <label class="block text-left text-sm font-bold text-gray-700 mb-2">Your Nickname</label>
+                        <input type="text" id="player-name" placeholder="e.g. Master Chef" class="shadow-sm appearance-none border-2 border-gray-200 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all mb-4 font-semibold text-lg">
+                        
+                        <div class="flex items-center justify-between mt-2 bg-white p-3 rounded-lg border border-gray-100">
+                             <label for="volume-slider" class="text-sm font-bold text-gray-600 flex items-center gap-2"><span>🎵</span> Music Volume</label>
+                             <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.3" class="w-1/2 accent-indigo-500">
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <button id="go-to-create-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 px-6 rounded-xl text-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed">
+                            Host a New Game
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <div class="h-px bg-gray-200 flex-1"></div>
+                            <span class="text-gray-400 font-medium text-sm">OR</span>
+                            <div class="h-px bg-gray-200 flex-1"></div>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="room-id-input" placeholder="Paste Room ID" class="shadow-sm appearance-none border-2 border-gray-200 rounded-xl w-2/3 py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:border-yellow-500 text-center font-mono">
+                            <button id="join-room-btn" class="w-1/3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all disabled:bg-gray-300 disabled:cursor-not-allowed">
+                                Join
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Country Selection View -->
+                <div id="country-selection-view" class="hidden fade-in">
+                    <h2 class="text-3xl font-black mb-2 text-gray-800">Select Opponent</h2>
+                    <p class="text-gray-500 mb-6 font-medium">Choose a country to battle against Taiwan</p>
+                    <div id="country-selection-grid" class="grid grid-cols-2 sm:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto p-2 custom-scrollbar">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                     <button id="back-to-login-btn" class="mt-8 text-gray-500 hover:text-gray-800 font-bold hover:underline transition-colors flex items-center justify-center gap-1 mx-auto">
+                         <span>←</span> Back
+                     </button>
+                </div>
+
+                <!-- Waiting View -->
+                <div id="waiting-view" class="hidden fade-in py-8">
+                    <div class="inline-block animate-spin text-indigo-500 text-5xl mb-6">⏳</div>
+                    <h2 class="text-3xl font-black mb-2 text-gray-800">Waiting for Challenger...</h2>
+                    <p class="text-gray-500 mb-8 font-medium">Share this Room ID with your friend</p>
+                    
+                    <div class="bg-indigo-50 border-2 border-indigo-100 p-4 rounded-2xl flex items-center justify-between gap-4 max-w-sm mx-auto shadow-inner">
+                        <span id="room-id-display" class="text-2xl font-mono font-bold text-indigo-800 tracking-wider"></span>
+                        <button id="copy-id-btn" class="bg-white text-indigo-600 border border-indigo-200 p-3 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm group">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                    <p id="copy-feedback" class="text-sm font-bold text-emerald-500 h-6 mt-3"></p>
+                </div>
+
+                 <!-- End Game View -->
+                 <div id="end-game-view" class="hidden fade-in">
+                     <div class="mb-2 text-5xl">🏆</div>
+                     <h2 id="end-title" class="text-3xl font-black mb-6 text-gray-800 uppercase tracking-wide">Final Results</h2>
+                     
+                     <div id="podium-container" class="podium-container mb-8">
+                        <!-- Populated by JS -->
+                     </div>
+                     
+                     <div class="mt-4 text-left bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2"><span>🍽️</span> Dishes Reviewed</h3>
+                        <div id="dishes-review-area" class="h-48 overflow-y-auto space-y-3 custom-scrollbar pr-2">
+                        </div>
+                     </div>
+                     
+                     <div id="feedback-section" class="mt-6 text-left">
+                        <label for="feedback-input" class="font-bold text-gray-600 text-sm ml-1">Leave a quick review:</label>
+                        <div class="flex gap-2 mt-2">
+                            <input type="text" id="feedback-input" class="shadow-sm appearance-none border border-gray-200 rounded-xl w-full py-2 px-4 text-gray-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Great game!">
+                            <button id="submit-feedback-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-xl transition-colors whitespace-nowrap">Send</button>
+                        </div>
+                        <p id="feedback-thanks" class="text-center text-emerald-500 font-bold text-sm mt-2 h-5"></p>
+                     </div>
+                     
+                     <button id="play-again-btn" class="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 px-6 rounded-xl text-xl shadow-lg transform hover:-translate-y-1 transition-all">
+                         Play Again
+                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, onSnapshot, updateDoc, collection, addDoc, deleteDoc, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT16Zl6I7g9xDVcM45wTMnAsPVrNYPwxKzJezvfaDTuM3u1tEQulZ4YUURHxbpPFj9xIP3CUg9x2zSD/pub?gid=0&single=true&output=csv';
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyApn6jhVdZJYp2QQURi8PvGELoYnN7gI7A",
+          authDomain: "modelstudents-24ecd.firebaseapp.com",
+          projectId: "modelstudents-24ecd",
+          storageBucket: "modelstudents-24ecd.firebasestorage.app",
+          messagingSenderId: "555281033144",
+          appId: "1:555281033144:web:8d0b60e9309f890b8c914d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- 國家與國旗對應字典 (新增國家會自動對應) ---
+        const countryDataMap = {
+            taiwan: { code: 'tw' }, malaysia: { code: 'my' }, australia: { code: 'au' }, 
+            philippines: { code: 'ph' }, canada: { code: 'ca' }, japan: { code: 'jp' },
+            korea: { code: 'kr' }, usa: { code: 'us' }, uk: { code: 'gb' },
+            france: { code: 'fr' }, germany: { code: 'de' }, italy: { code: 'it' },
+            spain: { code: 'es' }, thailand: { code: 'th' }, vietnam: { code: 'vn' },
+            singapore: { code: 'sg' }, indonesia: { code: 'id' }, india: { code: 'in' }
+        };
+
+        // --- DOM Elements ---
+        const p1NameDisplay = document.getElementById('p1-name-display'), p2NameDisplay = document.getElementById('p2-name-display');
+        const p1Card = document.getElementById('p1-card'), p2Card = document.getElementById('p2-card');
+        const p2Flag = document.getElementById('p2-flag');
+        const score1El = document.getElementById('score1'), score2El = document.getElementById('score2');
+        const timerEl = document.getElementById('timer'), descriptionEl = document.getElementById('description');
+        const roundTimerEl = document.getElementById('round-timer');
+        const dishImageContainer = document.getElementById('dish-image-container'), dishImage = document.getElementById('dish-image');
+        const chefView = document.getElementById('chef-view'), answerView = document.getElementById('answer-view'), answerGrid = document.getElementById('answer-grid');
+        const explanationZhDisplay = document.getElementById('explanation-zh-display');
+        
+        const modal = document.getElementById('modal');
+        const loginView = document.getElementById('login-view'), waitingView = document.getElementById('waiting-view'), endGameView = document.getElementById('end-game-view'), countrySelectionView = document.getElementById('country-selection-view');
+        const loadingDishesText = document.getElementById('loading-dishes-text');
+        const playerNameInput = document.getElementById('player-name');
+        const goToCreateBtn = document.getElementById('go-to-create-btn'), joinRoomBtn = document.getElementById('join-room-btn'), backToLoginBtn = document.getElementById('back-to-login-btn');
+        const countrySelectionGrid = document.getElementById('country-selection-grid');
+        const roomIdInput = document.getElementById('room-id-input');
+        const roomIdDisplay = document.getElementById('room-id-display'), copyIdBtn = document.getElementById('copy-id-btn'), copyFeedback = document.getElementById('copy-feedback');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const bgMusic = document.getElementById('bg-music');
+        const volumeSlider = document.getElementById('volume-slider');
+        const victoryMusic = document.getElementById('victory-music');
+        
+        const nextRoundBtn = document.getElementById('next-round-btn');
+        const timesUpOverlay = document.getElementById('times-up-overlay');
+        const countdownOverlay = document.getElementById('countdown-overlay'), countdownText = document.getElementById('countdown-text');
+        const podiumContainer = document.getElementById('podium-container');
+        const feedbackInput = document.getElementById('feedback-input');
+        const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+        const feedbackThanks = document.getElementById('feedback-thanks');
+        const dishesReviewArea = document.getElementById('dishes-review-area');
+        
+        // --- Game State ---
+        let allDishes = {}; 
+        let currentUser = null, gameRoomId = null, playerNumber = null;
+        let unsubscribe = null, mainTimerInterval = null, roundTimerInterval = null;
+        let speech = new SpeechSynthesisUtterance();
+        let currentGameDishes = [];
+        
+        // --- Game Logic ---
+        async function loadDishesFromGoogleSheet() {
+            try {
+                if (!GOOGLE_SHEET_URL) throw new Error("Missing GOOGLE_SHEET_URL");
+                const response = await fetch(GOOGLE_SHEET_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const csvText = await response.text();
+                const rows = csvText.split('\n').map(row => row.trim());
+                const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+                
+                const dishesData = rows.slice(1).filter(row => row).map(row => {
+                    const values = row.match(/(".*?"|[^",\r]+)(?=\s*,|\s*$)/g).map(v => v.replace(/^"|"$/g, '').trim());
+                    let obj = {};
+                    headers.forEach((header, i) => { obj[header] = values[i] || ''; });
+                    return obj;
+                });
+
+                allDishes = dishesData.reduce((acc, dish) => {
+                    const country = dish.country.toLowerCase();
+                    if (!acc[country]) acc[country] = [];
+                    acc[country].push(dish);
+                    return acc;
+                }, {});
+
+                loadingDishesText.textContent = "Ready! Enter your name to start.";
+                populateCountrySelection();
+
+            } catch (error) {
+                console.error('Failed to load dishes:', error);
+                loadingDishesText.textContent = "Error: Could not load dishes. Check URL.";
+            }
+        }
+
+        // --- 動態生成國家按鈕 ---
+        function populateCountrySelection() {
+            countrySelectionGrid.innerHTML = '';
+
+            for (const country in allDishes) {
+                if (country === 'taiwan') continue; // 台灣是預設的主場 P1
+                
+                const countryName = country.charAt(0).toUpperCase() + country.slice(1);
+                const flagCode = countryDataMap[country] ? countryDataMap[country].code : 'un'; // 找不到則顯示預設圖示
+                const dishCount = allDishes[country].length;
+
+                const button = document.createElement('button');
+                button.dataset.country = country;
+                // 使用現代感卡片設計
+                button.className = `group flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-indigo-500 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer relative overflow-hidden`;
+                
+                button.innerHTML = `
+                    <div class="h-16 w-24 relative mb-3 rounded-md overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
+                        <img src="https://flagcdn.com/w160/${flagCode}.png" alt="${countryName} Flag" class="object-cover w-full h-full" onerror="this.src='https://placehold.co/160x100?text=${countryName}'">
+                    </div>
+                    <span class="text-lg font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">${countryName}</span>
+                    <span class="text-xs font-semibold text-gray-400 mt-1 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">${dishCount} Dishes</span>
+                `;
+                button.addEventListener('click', (e) => {
+                    const selectedCountry = e.currentTarget.dataset.country;
+                    createRoom(selectedCountry);
+                    playMusic();
+                });
+                countrySelectionGrid.appendChild(button);
+            }
+        }
+
+        // --- 高級語音 TTS 設置 ---
+        function setupSpeech() {
+            const setVoice = () => {
+                const voices = window.speechSynthesis.getVoices();
+                // 優先選擇高品質、自然的英文語音 (跨平台支援)
+                const preferredVoices = [
+                    'Google US English', 'Google UK English Female', // Chrome
+                    'Samantha', 'Karen', 'Daniel', 'Rishi', // macOS / iOS
+                    'Microsoft Aria Online (Natural)', 'Microsoft Zira', 'Microsoft David' // Windows / Edge
+                ];
+                
+                let selectedVoice = null;
+                for (const voiceName of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(voiceName));
+                    if (selectedVoice) break;
+                }
+                
+                // Fallback: 找不到指定的高級語音，找任何英文發音
+                if (!selectedVoice) selectedVoice = voices.find(voice => voice.lang.startsWith('en-'));
+                if (selectedVoice) speech.voice = selectedVoice;
+            };
+            
+            setVoice();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = setVoice;
+            }
+            speech.lang = 'en-US';
+            speech.rate = 0.95; // 微調語速讓發音更自然
+            speech.pitch = 1.05; // 稍微調高音調增加活潑感
+        }
+
+        async function initializeGame() {
+            setupSpeech();
+            await loadDishesFromGoogleSheet();
+        }
+
+        function setupAnswerGrid() {
+            answerGrid.innerHTML = '';
+            currentGameDishes.forEach(dish => {
+                const button = document.createElement('button');
+                button.className = 'w-full p-2 text-sm sm:text-base border-2 border-gray-200 rounded-xl transition-all bg-white hover:bg-gray-50 text-gray-700 whitespace-normal break-words shadow-sm';
+                button.textContent = dish.name_en;
+                button.dataset.answer = dish.name_en;
+                button.addEventListener('click', handleAnswerSelection);
+                answerGrid.appendChild(button);
+            });
+        }
+
+        function showView(viewId) {
+            [loginView, waitingView, endGameView, countrySelectionView].forEach(v => v.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                goToCreateBtn.disabled = false;
+                joinRoomBtn.disabled = false;
+            } else {
+                signInAnonymously(auth).catch(error => {
+                    console.error("Anonymous sign-in failed:", error);
+                    alert("Could not connect to game server. Please check your internet connection.");
+                });
+            }
+        });
+        
+        async function createRoom(opponentCountry) {
+            if (!currentUser) return alert("Connecting to server, please try again soon...");
+            const playerName = playerNameInput.value.trim() || 'P1 Master';
+            
+            const combinedDishes = [...allDishes.taiwan, ...allDishes[opponentCountry]];
+            const dishOrder = combinedDishes.map((_, i) => i).sort(() => Math.random() - 0.5);
+
+            const roomData = {
+                player1: { uid: currentUser.uid, name: playerName, score: 0, answer: null, answeredAt: null },
+                player2: null, status: 'waiting', timeLeft: 180, currentDishIndex: -1,
+                dishOrder: dishOrder,
+                opponentCountry: opponentCountry,
+                roundTimeLeft: 20, roundActive: false, roundMessage: '', countdownStarted: false, countdownText: '', roundPaused: false,
+                revealImageUrl: '', revealExplanationZh: ''
+            };
+            try {
+                const docRef = await addDoc(collection(db, "game_rooms"), roomData);
+                gameRoomId = docRef.id;
+                playerNumber = 1;
+                roomIdDisplay.textContent = gameRoomId;
+                showView('waiting-view');
+                listenToRoomUpdates();
+            } catch (e) {
+                console.error("Failed to create room: ", e);
+                alert("Failed to create room! Please check your Firestore security rules.");
+            }
+        }
+
+        joinRoomBtn.addEventListener('click', async () => {
+             if (!currentUser) return alert("Connecting to server, please try again soon...");
+            const roomId = roomIdInput.value.trim();
+            const playerName = playerNameInput.value.trim() || 'P2 Challenger';
+            if (!roomId) return alert("Please enter a Room ID.");
+            const roomRef = doc(db, "game_rooms", roomId);
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists() && !roomSnap.data().player2) {
+                await updateDoc(roomRef, {
+                    player2: { uid: currentUser.uid, name: playerName, score: 0, answer: null, answeredAt: null },
+                    status: 'active'
+                });
+                gameRoomId = roomId;
+                playerNumber = 2;
+                listenToRoomUpdates();
+            } else {
+                alert("Room does not exist or is already full!");
+            }
+        });
+
+        function listenToRoomUpdates() {
+            if (unsubscribe) unsubscribe();
+            const roomRef = doc(db, "game_rooms", gameRoomId);
+            unsubscribe = onSnapshot(roomRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    if(gameRoomId) alert("The room was closed by the host.");
+                    resetGame();
+                    return;
+                }
+                const game = docSnap.data();
+
+                if(currentGameDishes.length === 0 && game.opponentCountry && allDishes[game.opponentCountry]) {
+                    currentGameDishes = [...allDishes.taiwan, ...allDishes[game.opponentCountry]];
+                    setupAnswerGrid();
+                }
+
+                updateUI(game);
+                handleGameFlow(game); 
+                if (playerNumber === 1) hostGameLoop(game);
+            });
+        }
+
+        function updateUI(game) {
+            if (game.player1) { p1NameDisplay.textContent = game.player1.name; score1El.textContent = game.player1.score; }
+            if (game.player2) { p2NameDisplay.textContent = game.player2.name; score2El.textContent = game.player2.score; } 
+            else { p2NameDisplay.textContent = "Waiting..."; score2El.textContent = 0; }
+            
+            p1Card.classList.toggle('you', playerNumber === 1);
+            p2Card.classList.toggle('you', playerNumber === 2);
+            
+            if(game.opponentCountry) {
+                const flagCode = countryDataMap[game.opponentCountry] ? countryDataMap[game.opponentCountry].code : 'un';
+                p2Flag.src = `https://flagcdn.com/w40/${flagCode}.png`;
+            }
+
+            const minutes = Math.floor(game.timeLeft / 60);
+            const seconds = game.timeLeft % 60;
+            timerEl.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            roundTimerEl.textContent = game.roundActive ? `⏱️ ${game.roundTimeLeft}s` : '';
+
+            if(game.countdownText) {
+                countdownOverlay.classList.remove('hidden');
+                countdownText.textContent = game.countdownText;
+                countdownText.classList.remove('countdown-text-enter');
+                void countdownText.offsetWidth; // trigger reflow
+                countdownText.classList.add('countdown-text-enter');
+            } else {
+                countdownOverlay.classList.add('hidden');
+            }
+
+            const isAnsweringPhase = game.roundActive;
+            const isRevealPhase = game.roundPaused;
+            answerView.classList.toggle('hidden', !isAnsweringPhase);
+            const currentDish = game.currentDishIndex > -1 && currentGameDishes.length > 0 ? currentGameDishes[game.dishOrder[game.currentDishIndex]] : null;
+            
+            descriptionEl.textContent = game.roundMessage || (currentDish ? currentDish.description : 'Welcome to the International Food Showdown!');
+            explanationZhDisplay.textContent = game.revealExplanationZh || '';
+            explanationZhDisplay.classList.toggle('hidden', !game.revealExplanationZh);
+
+            const myPlayerKey = playerNumber === 1 ? 'player1' : 'player2';
+            const hasAnswered = game[myPlayerKey] && game[myPlayerKey].answer;
+            answerGrid.querySelectorAll('button').forEach(btn => {
+                btn.disabled = hasAnswered || !isAnsweringPhase;
+                // 重設基本樣式
+                btn.className = 'w-full p-2 text-sm sm:text-base border-2 border-gray-200 rounded-xl transition-all bg-white hover:bg-gray-50 text-gray-700 whitespace-normal break-words shadow-sm';
+                
+                if (game.player1 && game.player1.answer === btn.dataset.answer) btn.classList.add('selected-p1');
+                if (game.player2 && game.player2.answer === btn.dataset.answer) btn.classList.add('selected-p2');
+                if (isRevealPhase && currentDish) {
+                    btn.disabled = true;
+                    if (btn.dataset.answer !== currentDish.name_en) {
+                       if(!btn.classList.contains('selected-p1') && !btn.classList.contains('selected-p2')) btn.classList.add('incorrect');
+                    } else {
+                        btn.classList.add('correct');
+                    }
+                }
+            });
+
+            if (isRevealPhase && currentDish && currentDish.image_url) {
+                dishImageContainer.classList.remove('hidden');
+                dishImage.src = currentDish.image_url;
+                dishImage.onerror = () => { dishImageContainer.classList.add('hidden'); }; // 如果沒圖片就藏起來
+            } else {
+                dishImageContainer.classList.add('hidden');
+            }
+            
+            const showNextRoundBtn = playerNumber === 1 && isRevealPhase;
+            nextRoundBtn.classList.toggle('hidden', !showNextRoundBtn);
+        }
+        
+        async function hostGameLoop(game) {
+            if (game.status === 'active' && !game.countdownStarted) {
+                await updateDoc(doc(db, "game_rooms", gameRoomId), { countdownStarted: true });
+                const countdownSequence = ["Ready?", "3", "2", "1", "GO!"];
+                for (let i = 0; i < countdownSequence.length; i++) {
+                    await updateDoc(doc(db, "game_rooms", gameRoomId), { countdownText: countdownSequence[i] });
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                await updateDoc(doc(db, "game_rooms", gameRoomId), { countdownText: '' });
+                startMainTimer();
+                await startNewRound();
+            }
+
+            if(game.roundActive && game.player1 && game.player1.answer && game.player2 && game.player2.answer) {
+                 if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
+                 await evaluateRound();
+            }
+        }
+        
+        function startMainTimer() {
+            if (mainTimerInterval) clearInterval(mainTimerInterval);
+             mainTimerInterval = setInterval(async () => {
+                const roomRef = doc(db, "game_rooms", gameRoomId);
+                const snap = await getDoc(roomRef);
+                if(snap.exists() && snap.data().timeLeft > 0 && !snap.data().roundPaused) {
+                    await updateDoc(roomRef, { timeLeft: snap.data().timeLeft - 1 });
+                } else if (!snap.exists() || snap.data().timeLeft <= 0) {
+                    clearInterval(mainTimerInterval);
+                    mainTimerInterval = null;
+                    if(snap.exists() && snap.data().status !== 'finished') await updateDoc(roomRef, { status: 'finished' });
+                }
+            }, 1000);
+        }
+
+        async function startNewRound() {
+            if(playerNumber === 1) startMainTimer();
+            const roomRef = doc(db, "game_rooms", gameRoomId);
+            const gameSnap = await getDoc(roomRef);
+            if(!gameSnap.exists()) return;
+            const game = gameSnap.data();
+            const newDishIndex = game.currentDishIndex + 1;
+            if (newDishIndex >= currentGameDishes.length || game.timeLeft <= 0) {
+                if(game.status !== 'finished') await updateDoc(roomRef, { status: 'finished' });
+                return;
+            }
+            await updateDoc(roomRef, {
+                currentDishIndex: newDishIndex,
+                'player1.answer': null, 'player1.answeredAt': null,
+                'player2.answer': null, 'player2.answeredAt': null,
+                roundMessage: '',
+                roundPaused: false,
+                revealImageUrl: '', 
+                revealExplanationZh: ''
+            });
+            setTimeout(async () => {
+                const latestSnap = await getDoc(roomRef);
+                if (!latestSnap.exists()) return;
+                const currentDish = currentGameDishes[latestSnap.data().dishOrder[latestSnap.data().currentDishIndex]];
+                speech.text = currentDish.description;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(speech);
+                speech.onend = async () => {
+                     await updateDoc(roomRef, { roundActive: true, roundTimeLeft: 20 });
+                     if (playerNumber === 1) {
+                        if(roundTimerInterval) clearInterval(roundTimerInterval);
+                        roundTimerInterval = setInterval(async () => {
+                            const rRef = doc(db, "game_rooms", gameRoomId);
+                            const rSnap = await getDoc(rRef);
+                            if(!rSnap.exists()){ clearInterval(roundTimerInterval); roundTimerInterval = null; return; }
+                            const { roundTimeLeft, roundActive } = rSnap.data();
+                            if (roundTimeLeft > 0 && roundActive) {
+                               await updateDoc(rRef, { roundTimeLeft: roundTimeLeft - 1 });
+                            } else {
+                               clearInterval(roundTimerInterval);
+                               roundTimerInterval = null;
+                               if(roundActive) await evaluateRound();
+                            }
+                        }, 1000);
+                     }
+                };
+            }, 1500);
+        }
+        
+        async function evaluateRound() {
+            if (playerNumber === 1 && mainTimerInterval) {
+                clearInterval(mainTimerInterval);
+                mainTimerInterval = null;
+            }
+            const roomRef = doc(db, "game_rooms", gameRoomId);
+            const gameSnap = await getDoc(roomRef);
+            if(!gameSnap.exists()) return;
+            const game = gameSnap.data();
+            if (!game.roundActive) return;
+            const currentDish = currentGameDishes[game.dishOrder[game.currentDishIndex]];
+            const p1 = game.player1, p2 = game.player2;
+            const p1Answered = p1 && p1.answer, p2Answered = p2 && p2.answer;
+            const p1Correct = p1Answered && p1.answer === currentDish.name_en;
+            const p2Correct = p2Answered && p2.answer === currentDish.name_en;
+            let updates = { roundActive: false, roundPaused: true }, roundMessage = "";
+            if (p1Correct && p2Correct) {
+                 if (p1.answeredAt.toMillis() < p2.answeredAt.toMillis()) {
+                    updates['player1.score'] = p1.score + 1;
+                    roundMessage = `⚡ ${p1.name} was faster! +1 Point!`;
+                } else {
+                    updates['player2.score'] = p2.score + 1;
+                    roundMessage = `⚡ ${p2.name} was faster! +1 Point!`;
+                }
+            } else if (p1Correct) {
+                updates['player1.score'] = p1.score + 1;
+                roundMessage = `✅ ${p1.name} got it right!`;
+            } else if (p2Correct) {
+                updates['player2.score'] = p2.score + 1;
+                roundMessage = `✅ ${p2.name} got it right!`;
+            } else {
+                roundMessage = `❌ Oh no! The correct answer was ${currentDish.name_en}`;
+            }
+            updates.roundMessage = roundMessage;
+            updates.revealImageUrl = currentDish.image_url || '';
+            updates.revealExplanationZh = currentDish.explanation_zh;
+            await updateDoc(roomRef, updates);
+        }
+
+        function renderPodium(game) {
+            const p1 = game.player1, p2 = game.player2;
+            let winner, loser;
+            if (p1.score >= p2.score) { winner = p1; loser = p2; }
+            else { winner = p2; loser = p1; }
+            podiumContainer.innerHTML = `
+                <div class="podium-step podium-2nd"><div class="podium-rank">2nd</div><div class="podium-name">${loser.name}</div><div class="podium-score">${loser.score} pts</div></div>
+                <div class="podium-step podium-1st"><div class="podium-rank">1st</div><div class="podium-name">${winner.name}</div><div class="podium-score">${winner.score} pts</div></div>
+            `;
+        }
+
+        function renderDishesReview(game) {
+            dishesReviewArea.innerHTML = '';
+            const playedDishIndices = game.dishOrder.slice(0, game.currentDishIndex + 1);
+            
+            playedDishIndices.forEach(index => {
+                const dish = currentGameDishes[index];
+                const dishEl = document.createElement('div');
+                dishEl.className = 'flex items-center gap-4 p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow';
+                const imgHtml = dish.image_url ? `<img src="${dish.image_url}" class="w-16 h-16 rounded-lg object-cover flex-shrink-0 border border-gray-200" onerror="this.style.display='none'">` : `<div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl">🍽️</div>`;
+                dishEl.innerHTML = `
+                    ${imgHtml}
+                    <div class="text-left flex-1">
+                        <p class="font-bold text-gray-800 leading-tight">${dish.name_en}</p>
+                        <p class="text-sm font-semibold text-indigo-500 mb-1">${dish.name_zh}</p>
+                        <p class="text-xs text-gray-500 line-clamp-2">${dish.explanation_zh}</p>
+                    </div>
+                `;
+                dishesReviewArea.appendChild(dishEl);
+            });
+        }
+
+        function handleGameFlow(game) {
+            if (game.status === 'waiting' || (game.status === 'active' && !game.countdownStarted)) {
+                modal.style.display = 'flex';
+                if(game.status === 'waiting') showView('waiting-view');
+            } else {
+                modal.style.display = 'none';
+            }
+            if (game.status === 'finished') {
+                if (mainTimerInterval) { clearInterval(mainTimerInterval); mainTimerInterval = null; }
+                if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
+                window.speechSynthesis.cancel();
+                bgMusic.pause();
+                timesUpOverlay.classList.remove('hidden');
+                setTimeout(() => {
+                    timesUpOverlay.classList.add('hidden');
+                    victoryMusic.src = "https://www.bensound.com/bensound-music/bensound-happyrock.mp3";
+                    victoryMusic.volume = volumeSlider.value;
+                    victoryMusic.play().catch(e => console.log("Victory music blocked"));
+                    renderPodium(game);
+                    renderDishesReview(game);
+                    showView('end-game-view');
+                }, 2500);
+            }
+        }
+        
+        async function handleAnswerSelection(e) {
+            const selectedAnswer = e.target.dataset.answer;
+            const roomRef = doc(db, "game_rooms", gameRoomId);
+            const gameSnap = await getDoc(roomRef);
+            if (!gameSnap.exists()) return;
+            const playerKey = playerNumber === 1 ? 'player1' : 'player2';
+            if (gameSnap.data().roundActive && !gameSnap.data()[playerKey].answer) {
+                let updates = {};
+                updates[`${playerKey}.answer`] = selectedAnswer;
+                updates[`${playerKey}.answeredAt`] = serverTimestamp();
+                await updateDoc(roomRef, updates);
+            }
+        }
+
+        async function resetGame() {
+            if(playerNumber === 1 && gameRoomId) await deleteDoc(doc(db, "game_rooms", gameRoomId)).catch(e => {});
+            if (unsubscribe) unsubscribe();
+            unsubscribe = null;
+            if (mainTimerInterval) { clearInterval(mainTimerInterval); mainTimerInterval = null; }
+            if (roundTimerInterval) { clearInterval(roundTimerInterval); roundTimerInterval = null; }
+            gameRoomId = null;
+            playerNumber = null;
+            currentGameDishes = [];
+            feedbackInput.value = '';
+            submitFeedbackBtn.disabled = false;
+            feedbackThanks.textContent = '';
+            victoryMusic.pause();
+            victoryMusic.currentTime = 0;
+            showView('login-view');
+        }
+
+        playAgainBtn.addEventListener('click', resetGame);
+        
+        copyIdBtn.addEventListener('click', () => {
+            if (!gameRoomId) return;
+            navigator.clipboard.writeText(gameRoomId).then(() => {
+                copyFeedback.textContent = 'Copied to clipboard!';
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement("textarea");
+                textArea.value = gameRoomId;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                copyFeedback.textContent = 'Copied to clipboard!';
+            });
+            setTimeout(() => copyFeedback.textContent = '', 2000);
+        });
+
+        volumeSlider.addEventListener('input', (e) => { bgMusic.volume = e.target.value; victoryMusic.volume = e.target.value;});
+        
+        function playMusic() {
+            bgMusic.src = "https://www.bensound.com/bensound-music/bensound-energy.mp3";
+            bgMusic.volume = volumeSlider.value;
+            bgMusic.play().catch(e => console.log("Music playback requires interaction."));
+        }
+        
+        goToCreateBtn.addEventListener('click', () => showView('country-selection-view'));
+        backToLoginBtn.addEventListener('click', () => showView('login-view'));
+        joinRoomBtn.addEventListener('click', playMusic);
+
+        submitFeedbackBtn.addEventListener('click', async () => {
+            const text = feedbackInput.value.trim();
+            if(!text) return;
+            const myName = playerNumber === 1 ? p1NameDisplay.textContent : p2NameDisplay.textContent;
+            try {
+                await addDoc(collection(db, "food_showdown_feedback"), { name: myName, text: text, createdAt: serverTimestamp() });
+                feedbackThanks.textContent = "Review sent!";
+                feedbackInput.value = '';
+                submitFeedbackBtn.disabled = true;
+            } catch (e) {
+                console.error("Error submitting:", e);
+                feedbackThanks.textContent = "Failed.";
+            }
+        });
+
+        nextRoundBtn.addEventListener('click', startNewRound);
+
+        initializeGame();
+    </script>
+</body>
+</html>
